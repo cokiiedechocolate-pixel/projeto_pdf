@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Digital</title>
+    <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">📚</div>
+                    <span>Biblioteca Digital</span>
+                </div>
+                <div class="search-container">
+                    <select id="type-filter" aria-label="Filtrar formato" class="select">
+                        <option value="all">Formatos</option>
+                        <option value="pdf">PDF</option>
+                        <option value="epub">EPUB</option>
+                        <option value="mobi">MOBI</option>
+                    </select>
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="search" id="search" placeholder="Buscar por título, autor ou descrição...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-number" id="total-count">0</span>
+                <span class="stat-label">Total de Livros</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="filtered-count">0</span>
+                <span class="stat-label">Resultados</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="total-size">0 MB</span>
+                <span class="stat-label">Biblioteca</span>
+            </div>
+        </div>
+
+        <ul id="pdf-list"></ul>
+
+        <div id="empty" hidden>
+            <div class="empty-icon">📖</div>
+            <h2 class="empty-title">Nenhum PDF encontrado</h2>
+            <p style="color: var(--text-muted);">Adicione seus livros ao arquivo pdfs.json</p>
+        </div>
+    </main>
+
+    <footer>
+        <p>Open Source Project. <span id="year"></span> Biblioteca Digital. Feito com ❤️ para amantes da leitura.</p>
+    </footer>
+
+    <div id="toast"></div>
+    <div id="modal-backdrop" class="modal-backdrop" hidden></div>
+    <div id="desc-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="desc-modal-title" hidden>
+        <div class="modal-header">
+            <h3 id="desc-modal-title" class="modal-title">Descrição completa</h3>
+            <button id="desc-modal-close" class="btn btn-secondary" aria-label="Fechar">✖</button>
+        </div>
+        <div id="desc-modal-body" class="modal-body"></div>
+    </div>
+
+    <script src="./assets/script.js"></script>
+</body>
+</html>
