@@ -447,10 +447,7 @@ function updateStats() {
 function applyFilter(query) {
   const q = query.toLowerCase();
   let base = q
-    ? state.items.filter(item =>
-      (item.title || '').toLowerCase().includes(q) ||
-      (item.description || '').toLowerCase().includes(q)
-    )
+    ? state.items.filter(item => String(item.__searchKey || ((item.title || '') + ' ' + (item.description || ''))).toLowerCase().includes(q))
     : state.items.slice();
   if (state.format !== 'all') {
     base = base.filter(i => hasFormat(i, state.format));
@@ -458,11 +455,11 @@ function applyFilter(query) {
   const f = state.filters;
   if (f.author && f.author.trim()) {
     const a = f.author.trim().toLowerCase();
-    base = base.filter(i => getAuthor(i).toLowerCase().includes(a));
+    base = base.filter(i => String(i.__author || '').includes(a));
   }
   if (Array.isArray(f.categories) && f.categories.length) {
     base = base.filter(i => {
-      const cats = getCategories(i);
+      const cats = Array.isArray(i.__categories) ? i.__categories : getCategories(i);
       for (const c of f.categories) { if (cats.includes(c)) return true; }
       return false;
     });
@@ -479,7 +476,7 @@ function applyFilter(query) {
     const y1 = f.yearFrom || 0;
     const y2 = f.yearTo || 3000;
     base = base.filter(i => {
-      const y = getYear(i);
+      const y = typeof i.__year === 'number' ? i.__year : getYear(i);
       if (!y) return true;
       return y >= y1 && y <= y2;
     });
@@ -539,7 +536,9 @@ function applyFilter(query) {
       if (sortKey === 'title-asc') return String(a.title || '').localeCompare(String(b.title || ''));
       if (sortKey === 'title-desc') return String(b.title || '').localeCompare(String(a.title || ''));
       if (sortKey === 'year-desc') {
-        const ya = getYear(a) || 0; const yb = getYear(b) || 0; return yb - ya;
+        const ya = (typeof a.__year === 'number' ? a.__year : getYear(a)) || 0;
+        const yb = (typeof b.__year === 'number' ? b.__year : getYear(b)) || 0;
+        return yb - ya;
       }
       if (sortKey === 'size-desc') {
         const sa = (a.__seriesTotalSize || a.size || 0); const sb = (b.__seriesTotalSize || b.size || 0); return sb - sa;
@@ -579,36 +578,67 @@ function renderSkeleton(count = 8) {
 
 renderSkeleton(8);
 
-fetch('books/books.json')
-  .then(res => res.json())
-  .then(data => {
-    state.items = Array.isArray(data) ? data : [];
+(async function loadBooks(){
+  const t0 = performance.now();
+  const cacheKey = 'booksCache_v1';
+  let cachedData = null;
+  try { const c = localStorage.getItem(cacheKey); if (c) cachedData = JSON.parse(c); } catch {}
+  if (cachedData && Array.isArray(cachedData.data)) {
+    state.items = cachedData.data;
+  }
+  let data = null;
+  let res = null;
+  try { res = await fetch('books/books.min.json'); } catch {}
+  if (res && res.ok) { try { data = await res.json(); } catch {} }
+  if (!data) {
+    try { res = await fetch('books/books.json'); } catch {}
+    if (res && res.ok) { try { data = await res.json(); } catch {} }
+  }
+  if (!data && state.items.length) { data = state.items; }
+  if (Array.isArray(data)) {
+    state.items = data.map((it) => {
+      const t = String(it.title || '');
+      const d = String(it.description || '');
+      const searchKey = (t + ' ' + d).toLowerCase();
+      const author = (() => { const i = t.indexOf(' - '); return i > 0 ? t.slice(0, i).trim().toLowerCase() : ''; })();
+      const year = (it.year && typeof it.year === 'number') ? it.year : (() => {
+        const m = (t + ' ' + (it.filename || '') + ' ' + d).match(/(19|20)\d{2}/); return m ? Number(m[0]) : null; })();
+      const cats = Array.isArray(it.categories) ? it.categories.map(x => String(x).toLowerCase()) : (() => {
+        const tt = t.toLowerCase(), dd = d.toLowerCase(), out = [];
+        if (/(manual|guia|curso|roteiro|técnico)/.test(tt) || /(manual|guia|curso|roteiro|técnico)/.test(dd)) out.push('técnico');
+        if (/(ficção|romance|fantasia|mistério|thriller|suspense)/.test(tt) || /(ficção|romance|fantasia|mistério|thriller|suspense)/.test(dd)) out.push('ficção');
+        if (/(hábito|auto ajuda|auto-ajuda|produtividade|motivação)/.test(tt) || /(hábito|auto ajuda|auto-ajuda|produtividade|motivação)/.test(dd)) out.push('auto-ajuda');
+        return Array.from(new Set(out)); })();
+      return Object.assign({}, it, { __searchKey: searchKey, __author: author, __year: year, __categories: cats });
+    });
+    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: state.items })); } catch {}
     const idx = new Map();
     for (const it of state.items) {
-      const info = extractSaga(it);
-      if (!info) continue;
-      const k = info.key;
-      let g = idx.get(k);
+      const info = extractSaga(it); if (!info) continue;
+      const k = info.key; let g = idx.get(k);
       if (!g) { g = { name: info.name, items: [] }; idx.set(k, g); }
       g.items.push({ item: it, index: (info.index == null ? 9999 : info.index) });
     }
-    for (const [k, g] of idx) {
-      g.items.sort((a, b) => a.index - b.index);
-      g.items = g.items.map(x => x.item);
-    }
-    state.__sagaIndex = idx;
-    state.renderIndex = 0;
-    applyFilter(els.search.value || '');
-
-    // Calcular tamanho total para o toast
+    for (const [k, g] of idx) { g.items.sort((a, b) => a.index - b.index); g.items = g.items.map(x => x.item); }
+    state.__sagaIndex = idx; state.renderIndex = 0; applyFilter(els.search.value || '');
     const totalBytes = state.items.reduce((sum, item) => sum + (item.size || 0), 0);
     const totalMB = calculateExactMB(totalBytes);
-    showToast(`✨ ${state.items.length} livros carregados (${totalMB} MB no total)!`);
-  })
-  .catch(() => {
-    document.getElementById('empty').hidden = false;
-    showToast('❌ Erro ao carregar a biblioteca');
-  });
+    const t1 = performance.now();
+    showToast(`✨ ${state.items.length} livros carregados (${totalMB} MB) em ${(t1 - t0).toFixed(0)}ms`);
+    const toggle = document.getElementById('perf-toggle'); const panel = document.getElementById('perf-panel');
+    if (toggle && panel) {
+      toggle.addEventListener('click', () => {
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) {
+          const mem = performance && performance.memory ? `${(performance.memory.usedJSHeapSize / 1048576).toFixed(0)}MB` : '—';
+          panel.innerHTML = `⏱️ Fetch: ${(t1 - t0).toFixed(0)}ms • Itens: ${state.items.length} • Mem: ${mem}`;
+        }
+      });
+    }
+  } else {
+    document.getElementById('empty').hidden = false; showToast('❌ Erro ao carregar a biblioteca');
+  }
+})();
 
 // Search
 const debounce = (fn, wait = 300) => {
