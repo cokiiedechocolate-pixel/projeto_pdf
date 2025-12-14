@@ -17,6 +17,10 @@
   --accent: #22d3ee;
   --success: #10b981;
   --card-min: 380px;
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  --glow-size: 640px;
+  --glow-opacity: .10;
 }
 
 body {
@@ -25,6 +29,24 @@ body {
   color: var(--text);
   line-height: 1.6;
   overflow-x: hidden;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
 }
 
 /* Animated gradient background */
@@ -44,6 +66,20 @@ body::before {
   z-index: 0;
 }
 
+/* External ambient aurora outside content */
+html::before {
+  content: '';
+  position: fixed;
+  inset: -12%;
+  background: conic-gradient(from 0deg at 10% 10%, rgba(99, 102, 241, .18), transparent 30%, rgba(34, 211, 238, .16) 50%, transparent 70%, rgba(236, 72, 153, .16));
+  filter: blur(80px) saturate(130%);
+  opacity: .35;
+  animation: auroraSpin 42s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: soft-light;
+}
+
 @keyframes gradientShift {
   0%, 100% {
     opacity: 0.5;
@@ -53,6 +89,12 @@ body::before {
   50% {
     opacity: 0.8;
     transform: scale(1.1) rotate(5deg);
+  }
+}
+
+@keyframes auroraSpin {
+  to {
+    transform: rotate(360deg) scale(1.02);
   }
 }
 
@@ -301,6 +343,33 @@ header {
   min-width: 260px;
 }
 
+.select {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid rgba(99, 102, 241, .35);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 16px;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.select:hover {
+  background: var(--surface-light);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, .20);
+}
+
+.select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
 .search-icon {
   position: absolute;
   left: 20px;
@@ -363,6 +432,18 @@ header {
   letter-spacing: 1px;
 }
 
+.perf-panel {
+  margin: 12px 0 0;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid rgba(99, 102, 241, .2);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+  display: grid;
+  gap: 8px;
+}
+
 /* Grid */
 #pdf-list {
   list-style: none;
@@ -389,6 +470,13 @@ header {
   background: var(--surface);
   border: 1px solid rgba(99, 102, 241, .2);
   border-radius: 16px;
+  transition: all .25s ease;
+}
+
+.pdf-row:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, .25);
 }
 
 .row-cover {
@@ -615,6 +703,11 @@ header {
   border-color: var(--primary);
 }
 
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, .30);
+}
+
 /* Empty state */
 #empty {
   text-align: center;
@@ -670,6 +763,8 @@ header {
 #toast.toast--info {
   border-color: var(--primary);
 }
+
+
 
 /* Footer */
 footer {
@@ -763,11 +858,7 @@ footer {
 .filters-grid {
   grid-template-columns: 1fr 1fr;
 }
-e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
 
-/* page-size removido */
-
-/* Realce dos controles de filtro */
 .filters-toggle {
   font-size: 16px;
   padding: 12px 16px;
@@ -833,6 +924,8 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   background: rgba(2, 6, 23, .55);
   z-index: 1000;
   backdrop-filter: blur(6px) saturate(120%);
+  opacity: 0;
+  animation: backdropIn .26s ease-out forwards;
 }
 
 .modal {
@@ -853,6 +946,22 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   animation: modalIn .26s ease-out;
 }
 
+.modal[hidden] {
+  display: none !important;
+}
+
+/* Shine accent */
+.modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(99, 102, 241, .15), transparent 30%, rgba(236, 72, 153, .12) 60%, transparent);
+  transform: translate3d(-20%, -20%, 0);
+  opacity: .0;
+  animation: modalShine 1.4s ease .15s forwards;
+}
+
 @keyframes modalIn {
   0% {
     opacity: 0;
@@ -863,6 +972,58 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+}
+
+@keyframes modalOut {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 8px)) scale(.98);
+  }
+}
+
+@keyframes modalShine {
+  0% {
+    opacity: 0;
+    transform: translate3d(-20%, -20%, 0);
+  }
+
+  100% {
+    opacity: .5;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.modal--closing {
+  animation: modalOut .22s ease-in forwards;
+}
+
+.modal-backdrop--closing {
+  animation: backdropOut .22s ease-in forwards;
 }
 
 .modal-header {
@@ -884,6 +1045,17 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   color: var(--text);
 }
 
+.modal.modal--book .modal-header {
+  position: static;
+  padding: 0;
+  height: 0;
+  background: transparent;
+}
+
+.modal.modal--book .modal-title {
+  display: none;
+}
+
 .modal.modal--filters .modal-title {
   position: static;
   width: auto;
@@ -901,6 +1073,28 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   line-height: 1.6;
 }
 
+/* Modal content entrance */
+.modal:not([hidden]) .book-modal-header {
+  animation: fadeSlideInUp .28s ease-out .06s both;
+}
+
+.modal:not([hidden]) .book-modal-body,
+.modal:not([hidden]) .tab-content {
+  animation: fadeSlideInUp .32s ease-out .12s both;
+}
+
+@keyframes fadeSlideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 #desc-modal-close {
   position: relative;
   background: var(--surface);
@@ -914,6 +1108,38 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
 
 #desc-modal-close:hover {
   background: var(--surface-light);
+}
+
+.modal.modal--book #desc-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 41, 59, .65);
+  border: 1px solid rgba(99, 102, 241, .35);
+  border-radius: 999px;
+  color: var(--text);
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.modal.modal--book #desc-modal-close:hover {
+  background: rgba(51, 65, 85, .85);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, .35);
+  transform: translateY(-1px);
+}
+
+.modal.modal--book #desc-modal-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .35);
 }
 
 .modal.modal--filters {
@@ -938,6 +1164,12 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   border-radius: 12px;
   object-fit: cover;
   background: var(--bg-dark);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.book-modal-cover:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(99, 102, 241, .25);
 }
 
 .book-modal-info {
@@ -977,12 +1209,19 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   padding: 8px 12px;
   cursor: pointer;
   font-weight: 600;
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.tab-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, .25);
 }
 
 .tab-btn.active {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   border-color: transparent;
+  box-shadow: 0 10px 24px rgba(99, 102, 241, .35);
 }
 
 .tab-content {
@@ -990,6 +1229,7 @@ e:\Estudos\projetos-pessoais\projeto_pdf\assets\styles.css
   border: 1px solid rgba(99, 102, 241, .2);
   border-radius: 12px;
   padding: 12px 14px;
+  transition: opacity .2s ease, transform .2s ease;
 }
 
 .tab-content[hidden] {

@@ -318,7 +318,19 @@ function createCardElement(item) {
       document.addEventListener('keydown', onEsc, { once: true });
       backdrop.onclick = close;
       closeBtn.onclick = close;
-      function close() { modal.hidden = true; backdrop.hidden = true; sagaBtn.focus(); }
+      function close() {
+        modal.classList.add('modal--closing');
+        backdrop.classList.add('modal-backdrop--closing');
+        const onEnd = () => {
+          modal.hidden = true;
+          backdrop.hidden = true;
+          modal.classList.remove('modal--closing');
+          backdrop.classList.remove('modal-backdrop--closing');
+          modal.removeEventListener('animationend', onEnd);
+          sagaBtn.focus();
+        };
+        modal.addEventListener('animationend', onEnd, { once: true });
+      }
       const previews = body.querySelectorAll('.series-preview');
       previews.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -578,21 +590,21 @@ function renderSkeleton(count = 8) {
 
 renderSkeleton(8);
 
-(async function loadBooks(){
+(async function loadBooks() {
   const t0 = performance.now();
   const cacheKey = 'booksCache_v1';
   let cachedData = null;
-  try { const c = localStorage.getItem(cacheKey); if (c) cachedData = JSON.parse(c); } catch {}
+  try { const c = localStorage.getItem(cacheKey); if (c) cachedData = JSON.parse(c); } catch { }
   if (cachedData && Array.isArray(cachedData.data)) {
     state.items = cachedData.data;
   }
   let data = null;
   let res = null;
-  try { res = await fetch('books/books.min.json'); } catch {}
-  if (res && res.ok) { try { data = await res.json(); } catch {} }
+  try { res = await fetch('books/books.min.json'); } catch { }
+  if (res && res.ok) { try { data = await res.json(); } catch { } }
   if (!data) {
-    try { res = await fetch('books/books.json'); } catch {}
-    if (res && res.ok) { try { data = await res.json(); } catch {} }
+    try { res = await fetch('books/books.json'); } catch { }
+    if (res && res.ok) { try { data = await res.json(); } catch { } }
   }
   if (!data && state.items.length) { data = state.items; }
   if (Array.isArray(data)) {
@@ -602,16 +614,18 @@ renderSkeleton(8);
       const searchKey = (t + ' ' + d).toLowerCase();
       const author = (() => { const i = t.indexOf(' - '); return i > 0 ? t.slice(0, i).trim().toLowerCase() : ''; })();
       const year = (it.year && typeof it.year === 'number') ? it.year : (() => {
-        const m = (t + ' ' + (it.filename || '') + ' ' + d).match(/(19|20)\d{2}/); return m ? Number(m[0]) : null; })();
+        const m = (t + ' ' + (it.filename || '') + ' ' + d).match(/(19|20)\d{2}/); return m ? Number(m[0]) : null;
+      })();
       const cats = Array.isArray(it.categories) ? it.categories.map(x => String(x).toLowerCase()) : (() => {
         const tt = t.toLowerCase(), dd = d.toLowerCase(), out = [];
         if (/(manual|guia|curso|roteiro|técnico)/.test(tt) || /(manual|guia|curso|roteiro|técnico)/.test(dd)) out.push('técnico');
         if (/(ficção|romance|fantasia|mistério|thriller|suspense)/.test(tt) || /(ficção|romance|fantasia|mistério|thriller|suspense)/.test(dd)) out.push('ficção');
         if (/(hábito|auto ajuda|auto-ajuda|produtividade|motivação)/.test(tt) || /(hábito|auto ajuda|auto-ajuda|produtividade|motivação)/.test(dd)) out.push('auto-ajuda');
-        return Array.from(new Set(out)); })();
+        return Array.from(new Set(out));
+      })();
       return Object.assign({}, it, { __searchKey: searchKey, __author: author, __year: year, __categories: cats });
     });
-    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: state.items })); } catch {}
+    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: state.items })); } catch { }
     const idx = new Map();
     for (const it of state.items) {
       const info = extractSaga(it); if (!info) continue;
@@ -841,10 +855,17 @@ function openBookModal(item, returnFocusEl) {
   backdrop.onclick = close;
   closeBtn.onclick = close;
   function close() {
-    modal.hidden = true;
-    backdrop.hidden = true;
-    modal.classList.remove('modal--book');
-    if (returnFocusEl) returnFocusEl.focus();
+    modal.classList.add('modal--closing');
+    backdrop.classList.add('modal-backdrop--closing');
+    const onEnd = () => {
+      modal.hidden = true;
+      backdrop.hidden = true;
+      modal.classList.remove('modal--book', 'modal--closing');
+      backdrop.classList.remove('modal-backdrop--closing');
+      modal.removeEventListener('animationend', onEnd);
+      if (returnFocusEl) returnFocusEl.focus();
+    };
+    modal.addEventListener('animationend', onEnd, { once: true });
   }
   const tabs = body.querySelectorAll('.tab-btn');
   tabs.forEach(btn => {
@@ -892,6 +913,23 @@ if (els.filtersToggle && els.filtersGrid) {
     if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
+
+(() => {
+  let px = 50, py = 50, ticking = false;
+  const setVars = () => {
+    document.documentElement.style.setProperty('--pointer-x', `${px}%`);
+    document.documentElement.style.setProperty('--pointer-y', `${py}%`);
+    ticking = false;
+  };
+  window.addEventListener('pointermove', (e) => {
+    px = Math.max(0, Math.min(100, (e.clientX / (window.innerWidth || 1)) * 100));
+    py = Math.max(0, Math.min(100, (e.clientY / (window.innerHeight || 1)) * 100));
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(setVars);
+    }
+  }, { passive: true });
+})();
 
 if (els.authorInput) {
   els.authorInput.addEventListener('input', debounce((e) => {
