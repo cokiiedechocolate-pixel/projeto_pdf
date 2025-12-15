@@ -201,35 +201,48 @@ function createCardElement(item) {
   const isSaga = Array.isArray(item.__seriesGroup) && item.__seriesGroup.length > 1;
   const sagaCount = isSaga ? (item.__seriesGroup.length || 0) : 0;
   if (state.view === 'grid') {
+    const author = getAuthor(item) || '';
+    const titleOnly = String(item.title || '').split(' - ').pop();
     li.innerHTML = `
-                    <div class="card-cover">
-                        <img src="${coverSrc}" alt="Capa de ${escapeHtml(item.title)}" 
-                             loading="lazy" decoding="async"
-                             onerror="this.src='${generateCover(item.title)}'">
-                        <div class="card-badge">${fileType}</div>
-                        ${isSaga ? `<div class="saga-badge">Saga (${sagaCount})</div>` : ''}
-                    </div>
-                    <div class="card-content">
-                        <h3 class="card-title">${escapeHtml(item.title)}</h3>
-                        ${item.description ? `<p class="card-description">${escapeHtml(item.description)}</p>` : ''}
-                        ${longDesc ? `<button class="read-more" type="button" aria-haspopup="dialog" aria-controls="desc-modal">Ler mais</button>` : ''}
-                        <div class="card-meta">
-                            <span class="meta-item">💾 ${formatSize(item.size)}</span>
-                            <span class="meta-item" data-exact-mb="${exactMB}">📄 ${fileType}</span>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn btn-primary download-btn">
-                                <span>⬇️</span>
-                                <span>Baixar</span>
-                            </button>
-                            <button class="btn btn-secondary preview-btn">
-                                <span>👁️</span>
-                                <span>Visualizar</span>
-                            </button>
-                            ${isSaga ? `<button class="btn btn-secondary saga-btn"><span>📚</span><span>Saga</span></button>` : ''}
-                        </div>
-                    </div>
-                `;
+      <div class="ref-card">
+        <div class="ref-frame">
+          <div class="ref-layout">
+            <div class="ref-left">
+              <div class="ref-author">
+                <div class="ref-accent"></div>
+                <div class="ref-author-text">${escapeHtml(author || '—')}</div>
+                <div class="ref-subtitle">${escapeHtml(titleOnly || '')}</div>
+              </div>
+              <div class="ref-left-cover" style="background-image:url('${coverSrc}');"></div>
+            </div>
+            <div class="ref-right">
+              <div class="ref-cover" style="background-image:url('${coverSrc}');"></div>
+              <div class="ref-dots">
+                <span class="ref-dot"></span>
+                <span class="ref-dot"></span>
+                <span class="ref-dot"></span>
+              </div>
+              <div class="ref-details">
+                ${item.description ? `<div class="ref-desc">${escapeHtml(item.description)}</div>` : `<div class="ref-desc">Sem descrição disponível.</div>`}
+                <div class="ref-info collapsed">
+                  <div class="ref-meta">
+                    <span class="meta-item">💾 ${formatSize(item.size)}</span>
+                    <span class="meta-item" data-exact-mb="${exactMB}">📄 ${fileType}</span>
+                  </div>
+                  <button class="mobile-toggle-arrow" type="button" aria-expanded="false" aria-label="Mostrar informações adicionais">▼</button>
+                  <div class="ref-actions">
+                    <button class="btn btn-primary download-btn"><span>⬇️</span><span>Baixar</span></button>
+                    <button class="btn btn-secondary preview-btn"><span>👁️</span><span>Visualizar</span></button>
+                    ${longDesc ? `<button class="btn btn-secondary read-more" type="button" aria-haspopup="dialog" aria-controls="desc-modal">Ler mais</button>` : ''}
+                    ${isSaga ? `<button class="btn btn-secondary saga-btn"><span>📚</span><span>Saga</span></button>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   } else {
     const author = getAuthor(item) || '';
     li.innerHTML = `
@@ -381,6 +394,17 @@ function createCardElement(item) {
       });
     };
     sagaBtn.onclick = openSaga;
+  }
+  const mobileToggle = li.querySelector('.mobile-toggle-arrow');
+  if (mobileToggle) {
+    mobileToggle.onclick = () => {
+      const info = mobileToggle.closest('.ref-info');
+      if (!info) return;
+      const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
+      const next = !expanded;
+      mobileToggle.setAttribute('aria-expanded', String(next));
+      info.classList.toggle('collapsed', !next);
+    };
   }
   return li;
 }
